@@ -2,6 +2,124 @@
 
 Patterns and conventions for writing exhaustive Playwright E2E tests.
 
+## Required Test Patterns
+
+### Use POM Helper Methods
+
+**DO** use Page Object Model helper methods for common operations:
+
+```typescript
+// GOOD - Use POM helpers
+await page.opp.addDepartmentTagWithColor(tagName, 'FF0000');
+await page.opp.addNewCategoryWithTag('TagValue', 'CategoryName');
+
+// BAD - Inline click sequences (verbose, fragile)
+await page.opp.spaceDepartment.departmentDropDown.click();
+await page.opp.spaceDepartment.addNew.click();
+await page.waitForTimeout(200);
+await page.tags.activeTagInput.fill(tagName);
+await page.opp.spaceDepartment.colorButton.click();
+await page.waitForTimeout(300);
+await page.opp.spaceDepartment.spaceDepartmentColor.fill('FF0000');
+await page.opp.spaceDepartment.applyButton.click();
+```
+
+Before writing inline sequences, check if a POM helper exists in `src/common/pom/`.
+
+### Test Organization with Section Headers
+
+Group related tests with clear section headers:
+
+```typescript
+// ============================================================================
+// 3D VIEW BEHAVIOR TESTS
+// ============================================================================
+
+test('TC_FEATURE_3D_001', async ({ page }) => {
+  // ...
+});
+
+// ============================================================================
+// UNDO/REDO TESTS
+// ============================================================================
+
+test('TC_FEATURE_UNDO_001', async ({ page }) => {
+  // ...
+});
+```
+
+### Use Verification Helpers
+
+Use helper functions from `common/geometry` and `common/project` for verification:
+
+```typescript
+import { clearSelection, selectionStackLength } from '../../common/geometry';
+
+// Verify selection count
+await expect(await selectionStackLength(page)).toBe(2);
+
+// Clear selection before snapshots
+await clearSelection(page);
+```
+
+### Test Cleanup
+
+Always clean up created test data to avoid state pollution:
+
+```typescript
+test('TC_FEATURE_001', async ({ page }) => {
+  const categoryName = 'TestCategory_' + generateRandomString(5);
+
+  // ... test logic that creates the category ...
+
+  // Cleanup at end of test
+  const categoryRow = page.locator('[id^="space-tag-category-row-"]')
+    .filter({ hasText: categoryName });
+  await categoryRow.hover();
+  const categoryActionsButton = categoryRow.locator('[id*="tag-category-actions"]');
+  await categoryActionsButton.click();
+  await page.getByText('Delete tag').click();
+  await page.getByRole('button', { name: 'Delete' }).click();
+});
+```
+
+### Snapshot Tolerance Guidelines
+
+Use appropriate `maxDiffPixels` based on view type:
+
+```typescript
+// 2D view snapshots - use standard tolerance
+await expect(page).toHaveCanvasSnapshot('tc_feature_001.png', { maxDiffPixels: 960 });
+
+// 3D view snapshots - use higher tolerance due to rendering variation
+await expect(page).toHaveCanvasSnapshot('tc_feature_3d_001.png', { maxDiffPixels: 1500 });
+```
+
+### Use POM-based RCCM Locators
+
+Use Page Object Model locators for right-click context menu operations:
+
+```typescript
+// GOOD - POM-based
+await page.rightClick.hide.click();
+await page.rightClick.lock.click();
+
+// BAD - Text matching (fragile, may match tooltips)
+await page.getByText('Hide').click();
+```
+
+### Reading Displayed Values
+
+Use `data-test-id` tooltip locators for reading displayed values:
+
+```typescript
+// Read the currently displayed tag value
+const tagDisplay = page.locator(
+  "[data-test-id='tooltip_selected_space-tag-category-dropdown-DEPARTMENT']"
+);
+await expect(tagDisplay).toHaveText(expectedTagName);
+```
+
 ## Getting Started: Repository Discovery
 
 Before writing E2E tests, you must know where the Playwright tests live. Ask the user:

@@ -529,6 +529,14 @@ If implementation changes break existing E2E tests:
 
 **Writing redundant helper methods.** Before creating any helper function, search the `common/` directory to check if it already exists. Duplicating `ensureDrawMode()`, `setCameraPosition()`, or similar utilities wastes effort and creates maintenance burden. Always reuse existing common methods.
 
+**Writing inline click sequences when POM helpers exist.** Before writing multi-step UI interactions (like creating a tag with color), check if a POM helper method exists. For example, use `page.opp.addDepartmentTagWithColor(tagName, color)` instead of manually clicking dropdown → add new → fill input → click color → fill color → apply. POM helpers are more maintainable and consistent.
+
+**Skipping test cleanup.** Always delete test-created data (categories, tags, custom views) at the end of tests to prevent state pollution across test runs. Use the proper delete flow: hover → action button → delete option → confirm.
+
+**Using wrong snapshot tolerance.** Use `maxDiffPixels: 960` for 2D views and `maxDiffPixels: 1500` for 3D views which have more rendering variation.
+
+**Not grouping related tests.** Use section headers (`// ============================================================================`) to group related tests (3D View Tests, Undo/Redo Tests, etc.) for better organization and readability.
+
 **Code before tests.** The core violation. Discard AI-authored implementation code created in the current cycle and restart from Step 2. Do not delete or rewrite pre-existing user code or repository history. Code-first implementation cannot be kept as "reference" — its existence biases test writing toward confirming what was already built.
 
 **Tests that pass immediately.** Either testing existing behavior or testing nothing. Investigate before proceeding.
